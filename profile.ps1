@@ -1,116 +1,189 @@
 ### PowerShell template profile 
-### Version 1.00 - Yeddo
-### From https://
+### Version 1.00
 ### Open PowerShell as administrator
-#Create your profile by typing New-Item $profile
-#You’ll get an error if the file already exists. This is expected.
-#Copy the code block below into your $profile
-#     Set-Location $env:TEMP
-#     Import-Module PSReadLine -Verbose
-#     Set-Alias ll Get-ChildItem -Option AllScope
-#Type:
-#     & $profile
-
-### This file should be stored in $PROFILE.CurrentUserAllHosts
-### If $PROFILE.CurrentUserAllHosts doesn't exist, you can make one with the following:
-###    PS> New-Item $PROFILE.CurrentUserAllHosts -ItemType File -Force
-### This will create the file and the containing subdirectory if it doesn't already 
-###
 ### As a reminder, to enable unsigned script execution of local scripts on client Windows, 
 ### you need to run this line (or similar) from an elevated PowerShell prompt:
-###   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned
-### For more information about execution policies, run Get-Help about_Execution_Policies.
+###     Set-ExecutionPolicy -ExecutionPolicy RemoteSigned
+### Create your profile by typing:
+###     New-Item $PROFILE.CurrentUserAllHosts -ItemType File -Force
+###     You’ll get an error if the file already exists. This is expected.
+### File is located: C:\Users\<username>\Documents\WindowsPowerShell
+### Copy this code below into your $profile
+### Reload profile:
+#     . $profile
 
 # Find out if the current user identity is elevated (has admin rights)
 $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
 $principal = New-Object Security.Principal.WindowsPrincipal $identity
 $isAdmin = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
-# If so and the current host is a command line, then change to red color 
-# as warning to user that they are operating in an elevated context
-if (($host.Name -match "ConsoleHost") -and ($isAdmin))
-{
+# If so and the current host is a command line, then change to red color as warning to user that they are operating in an elevated context
+if (($host.Name -match "ConsoleHost") -and ($isAdmin)) {
      $host.UI.RawUI.BackgroundColor = "DarkRed"
      $host.PrivateData.ErrorBackgroundColor = "White"
      $host.PrivateData.ErrorForegroundColor = "DarkRed"
      Clear-Host
 }
 
-# Useful shortcuts for traversing directories
-function cd...  { cd ..\.. }
-function cd.... { cd ..\..\.. }
-
-# Compute file hashes - useful for checking successful downloads 
-function md5    { Get-FileHash -Algorithm MD5 $args }
-function sha1   { Get-FileHash -Algorithm SHA1 $args }
-function sha256 { Get-FileHash -Algorithm SHA256 $args }
-
-# Quick shortcut to start notepad
-function n      { notepad $args }
-
-# Drive shortcuts
-function HKLM:  { Set-Location HKLM: }
-function HKCU:  { Set-Location HKCU: }
-function Env:   { Set-Location Env: }
-
-# Creates drive shortcut for Work Folders, if current user account is using it
-if (Test-Path "$env:USERPROFILE\Work Folders")
-{
-    New-PSDrive -Name Work -PSProvider FileSystem -Root "$env:USERPROFILE\Work Folders" -Description "Work Folders"
-    function Work: { Set-Location Work: }
-}
-
-# Creates drive shortcut for OneDrive, if current user account is using it
-if (Test-Path HKCU:\SOFTWARE\Microsoft\OneDrive)
-{
-    $onedrive = Get-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\OneDrive
-    if (Test-Path $onedrive.UserFolder)
-    {
-        New-PSDrive -Name OneDrive -PSProvider FileSystem -Root $onedrive.UserFolder -Description "OneDrive"
-        function OneDrive: { Set-Location OneDrive: }
-    }
-    Remove-Variable onedrive
-}
-
-### Prompt section ###
-# Prompt is a reserved name for the function that covers how your prompt is setup.
-# Prompt is a reserved name for the function that covers how your prompt is setup.
-#function prompt {
-#    # Shout out to the Stack Overflow article that helped with this test.
-#    # https://serverfault.com/questions/95431/in-a-powershell-script-how-can-i-check-if-im-running-with-administrator-privil
-#    if ($IsWindows) {
-#        $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
-#        if ($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-#            "n$(Get-Date -Format "yyyy-MM-dd HH:mm:ss K")n$env:USERNAME as Administrator on $(hostname)n$pwdnPS > "
-#        } else {
-#            "n$(Get-Date -Format "yyyy-MM-dd HH:mm:ss K")n$env:USERNAME as standard user on $(hostname)n$pwdnPS > "
-#        }
-#    }
-#
-#    if ($isLinux -Or $isMac) {
-#        "n$(Get-Date -Format "yyyy-MM-dd HH:mm:ss K")n$env:USERNAME on $(hostname)n$pwdnPS > "
-#    }
-#}
-
-# Set up command prompt and window title. Use UNIX-style convention for identifying 
-# whether user is elevated (root) or not. Window title shows current version of PowerShell
-# and appends [ADMIN] if appropriate for easy taskbar identification
+# PROMPT
+# UNIX-style convention for identifying whether user is elevated '#'(root) or not '$'.
 function prompt { 
+    $date = Get-Date -Format "yyyy-MM-dd"
+    $time = Get-Date -Format "HH:mm:ss"
+    $timezoneAbbreviations = @{
+    "Dateline Standard Time" = "DST"
+    "Samoa Standard Time" = "SST"
+    "Hawaiian Standard Time" = "HST"
+    "Alaskan Standard Time" = "AKST"
+    "Pacific Standard Time" = "PST"
+    "Pacific Standard Time (Mexico)" = "PST"
+    "US Mountain Standard Time" = "MST"
+    "Mountain Standard Time (Mexico)" = "MST"
+    "Mountain Standard Time" = "MST"
+    "Central America Standard Time" = "CAST"
+    "Central Standard Time" = "CST"
+    "Central Standard Time (Mexico)" = "CST"
+    "Canada Central Standard Time" = "CCST"
+    "SA Pacific Standard Time" = "SAPST"
+    "Eastern Standard Time" = "EST"
+    "Eastern Standard Time (Mexico)" = "EST"
+    "Haiti Standard Time" = "HST"
+    "Cuba Standard Time" = "CST"
+    "SA Eastern Standard Time" = "SEST"
+    "Turks And Caicos Standard Time" = "TCST"
+    "Paraguay Standard Time" = "PST"
+    "Atlantic Standard Time" = "AST"
+    "Venezuela Standard Time" = "VST"
+    "Central Brazilian Standard Time" = "CBST"
+    "SA Western Standard Time" = "SWST"
+    "Pacific SA Standard Time" = "PSAST"
+    "Newfoundland Standard Time" = "NST"
+    "Tocantins Standard Time" = "TST"
+    "E. South America Standard Time" = "ESAST"
+    "Argentina Standard Time" = "AST"
+    "Greenland Standard Time" = "GST"
+    "Montevideo Standard Time" = "MST"
+    "Magallanes Standard Time" = "MST"
+    "Saint Pierre Standard Time" = "SPST"
+    "Bahia Standard Time" = "BST"
+    "UTC-02" = "UTC-02"
+    "Mid-Atlantic Standard Time" = "MST"
+    "Azores Standard Time" = "AZOST"
+    "Cape Verde Standard Time" = "CVST"
+    "UTC" = "UTC"
+    "Morocco Standard Time" = "MST"
+    "GMT Standard Time" = "GMT"
+    "Greenwich Standard Time" = "GST"
+    "W. Europe Standard Time" = "WST"
+    "Central Europe Standard Time" = "CEST"
+    "Romance Standard Time" = "RST"
+    "Central European Standard Time" = "CEST"
+    "W. Central Africa Standard Time" = "WCAST"
+    "Namibia Standard Time" = "NST"
+    "Jordan Standard Time" = "JST"
+    "GTB Standard Time" = "GTBST"
+    "Middle East Standard Time" = "MEST"
+    "Egypt Standard Time" = "EST"
+    "Syria Standard Time" = "SST"
+    "South Africa Standard Time" = "SAST"
+    "FLE Standard Time" = "FST"
+    "Turkey Standard Time" = "TST"
+    "Israel Standard Time" = "IST"
+    "Kaliningrad Standard Time" = "KST"
+    "Libya Standard Time" = "LST"
+    "Arabic Standard Time" = "AST"
+    "Arab Standard Time" = "AST"
+    "Belarus Standard Time" = "BST"
+    "Russian Standard Time" = "RST"
+    "E. Africa Standard Time" = "EAST"
+    "Iran Standard Time" = "IRST"
+    "Arabian Standard Time" = "AST"
+    "Astrakhan Standard Time" = "AST"
+    "Azerbaijan Standard Time" = "AZT"
+    "Russia Time Zone 3" = "RTZ3"
+    "Mauritius Standard Time" = "MST"
+    "Saratov Standard Time" = "SST"
+    "Georgian Standard Time" = "GST"
+    "Caucasus Standard Time" = "CST"
+    "Afghanistan Standard Time" = "AST"
+    "West Asia Standard Time" = "WAST"
+    "Ekaterinburg Standard Time" = "EST"
+    "Pakistan Standard Time" = "PST"
+    "Qyzylorda Standard Time" = "QST"
+    "India Standard Time" = "IST"
+    "Sri Lanka Standard Time" = "SLST"
+    "Nepal Standard Time" = "NST"
+    "Central Asia Standard Time" = "CAST"
+    "Bangladesh Standard Time" = "BST"
+    "Omsk Standard Time" = "OST"
+    "Myanmar Standard Time" = "MST"
+    "SE Asia Standard Time" = "SEAST"
+    "Altai Standard Time" = "AST"
+    "W. Mongolia Standard Time" = "WMST"
+    "North Asia Standard Time" = "NAST"
+    "N. Central Asia Standard Time" = "NCAST"
+    "Tomsk Standard Time" = "TST"
+    "China Standard Time" = "CST"
+    "North Asia East Standard Time" = "NAEST"
+    "Singapore Standard Time" = "SST"
+    "W. Australia Standard Time" = "WAST"
+    "Taipei Standard Time" = "TST"
+    "Ulaanbaatar Standard Time" = "UST"
+    "North Korea Standard Time" = "NKST"
+    "Aus Central W. Standard Time" = "ACWST"
+    "Transbaikal Standard Time" = "TST"
+    "Tokyo Standard Time" = "TST"
+    "Korea Standard Time" = "KST"
+    "Yakutsk Standard Time" = "YST"
+    "Cen. Australia Standard Time" = "CAST"
+    "AUS Central Standard Time" = "ACST"
+    "E. Australia Standard Time" = "EAST"
+    "AUS Eastern Standard Time" = "AEST"
+    "West Pacific Standard Time" = "WPST"
+    "Tasmania Standard Time" = "TST"
+    "Vladivostok Standard Time" = "VST"
+    "Lord Howe Standard Time" = "LHST"
+    "Bougainville Standard Time" = "BST"
+    "Russia Time Zone 10" = "RTZ10"
+    "Magadan Standard Time" = "MST"
+    "Norfolk Standard Time" = "NST"
+    "Sakhalin Standard Time" = "SST"
+    "Central Pacific Standard Time" = "CPST"
+    "Russia Time Zone 11" = "RTZ11"
+    "New Zealand Standard Time" = "NZST"
+    "UTC+12" = "UTC+12"
+    "Fiji Standard Time" = "FST"
+    "Chatham Islands Standard Time" = "CIST"
+    "UTC+13" = "UTC+13"
+    "Tonga Standard Time" = "TST"
+    "Line Islands Standard Time" = "LIST"
+    }
+    
+    $timezone = [System.TimeZoneInfo]::Local.StandardName
+    $abbreviation = $timezoneAbbreviations[$timezone]
+    if ($abbreviation -eq $null) {
+        $abbreviation = $timezone
+    }
+ 
+    $pwd = Get-Location
+    
     if ($isAdmin) {
-        "[" + (Get-Location) + "] # " 
+        "$date $time $abbreviation [" + $pwd + "] # " 
     }
     else {
-        "[" + (Get-Location) + "] $ "
+        "$date $time $abbreviation [" + $pwd + "] $ " 
     }
-}
+} ### END PROMPT SECTION ###
 
-### end of prompt section ###
 
+# WINDOW TITLE
+# Shows current version of Powershell and appends [ADMIN] if appropriate
 $Host.UI.RawUI.WindowTitle = "PowerShell {0}" -f $PSVersionTable.PSVersion.ToString()
 if ($isAdmin)
 {
     $Host.UI.RawUI.WindowTitle += " [ADMIN]"
-}
+} # END WINDOW TITLE
+
 
 # Does the the rough equivalent of dir /s /b. For example, dirs *.png is dir /s /b *.png
 function dirs {
@@ -122,21 +195,25 @@ function dirs {
     }
 }
 
-# Simple function to start a new elevated process. If arguments are supplied then 
-# a single command is started with admin rights; if not then a new admin instance
-# of PowerShell is started.
+# Function to start a new elevated ISE.
+# If arguments are supplied then a single command is started with admin rights; if not then a new admin instance of PowerShell is started.
 function admin {
     if ($args.Count -gt 0) {   
        $argList = "& '" + $args + "'"
-       Start-Process "$psHome\powershell.exe" -Verb runAs -ArgumentList $argList
+       Start-Process "$psHome\powershell_ise.exe" -Verb runAs -ArgumentList $argList
     }
     else {
-       Start-Process "$psHome\powershell.exe" -Verb runAs
+       Start-Process "$psHome\powershell_ise.exe" -Verb runAs
     }
 }
 
-# Set UNIX-like aliases for the admin command, so sudo <command> will run the command
-# with elevated rights. 
+# Compute file hashes - useful for checking successful downloads 
+function md5    { Get-FileHash -Algorithm MD5 $args }
+function sha1   { Get-FileHash -Algorithm SHA1 $args }
+function sha256 { Get-FileHash -Algorithm SHA256 $args }
+
+
+# Set UNIX-like aliases for the admin command, so sudo <command> will run the command with elevated rights. 
 Set-Alias -Name su -Value admin
 Set-Alias -Name sudo -Value admin
 
@@ -150,8 +227,7 @@ function Edit-Profile {
     }
 }
 
-# We don't need these any more; they were just temporary variables to get to $isAdmin. 
-# Delete them to prevent cluttering up the user profile. 
+# Don't need these any more; they were just temporary variables to get to $isAdmin. 
 Remove-Variable identity
 Remove-Variable principal
 
@@ -162,21 +238,13 @@ Remove-Variable principal
 # Get-Help Start-Transcript -ShowWindow.
 
 ## Transcript Section Variables ##
-# On Windows, I like to put it in the C drive directly.
-if ($IsWindows) {
-    $TranscriptDir = "C:\transcripts\"
-}
-
-# use linux or Mac path for those OSs
-#if ($IsLinux -Or $IsMac) {
-#    $TranscriptDir = "/home/test/.transcripts/"
-#}
+$TranscriptDir = "C:\transcripts\"
 
 # Transcript log sets up the file's name. It will tell you:
      # - the computer the transcript came from
      # - the user's PowerShell session that is recordedf
      # - the day the transcript was made
-$TranscriptLog = (hostname)+"_"+$env:USERNAME+"_"+(Get-Date -UFormat "%Y-%m-%d")
+$TranscriptLog = (hostname)+"_"+$env:USERNAME+"_"+(Get-Date -UFormat "%Y-%m-%d")+".txt"
 
 # Transcript Path is the full path and file name of the transcript log.
 $TrascriptPath = $TranscriptDir + $TranscriptLog
@@ -184,11 +252,9 @@ $TrascriptPath = $TranscriptDir + $TranscriptLog
 
 # Test to see if the transcript directory exists. If it doesn't create it.
 if (!($TranscriptDir)) {
-    New-Item $TranscriptDir -Type Directory -Force
+    New-Item -path $TranscriptDir -ItemType Directory -Force
 }
 
 # Start the transcription based on the path we've created above
 Start-Transcript -LiteralPath $TrascriptPath -Append
-
-### end of transcript section ###
-
+### END TRANSCRIPT SECTION ###
