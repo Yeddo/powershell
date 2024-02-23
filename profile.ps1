@@ -74,20 +74,39 @@ if (Test-Path HKCU:\SOFTWARE\Microsoft\OneDrive)
     Remove-Variable onedrive
 }
 
+### Prompt section ###
+# Prompt is a reserved name for the function that covers how your prompt is setup.
+# Prompt is a reserved name for the function that covers how your prompt is setup.
+#function prompt {
+#    # Shout out to the Stack Overflow article that helped with this test.
+#    # https://serverfault.com/questions/95431/in-a-powershell-script-how-can-i-check-if-im-running-with-administrator-privil
+#    if ($IsWindows) {
+#        $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+#        if ($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+#            "n$(Get-Date -Format "yyyy-MM-dd HH:mm:ss K")n$env:USERNAME as Administrator on $(hostname)n$pwdnPS > "
+#        } else {
+#            "n$(Get-Date -Format "yyyy-MM-dd HH:mm:ss K")n$env:USERNAME as standard user on $(hostname)n$pwdnPS > "
+#        }
+#    }
+#
+#    if ($isLinux -Or $isMac) {
+#        "n$(Get-Date -Format "yyyy-MM-dd HH:mm:ss K")n$env:USERNAME on $(hostname)n$pwdnPS > "
+#    }
+#}
+
 # Set up command prompt and window title. Use UNIX-style convention for identifying 
 # whether user is elevated (root) or not. Window title shows current version of PowerShell
 # and appends [ADMIN] if appropriate for easy taskbar identification
-function prompt 
-{ 
-    if ($isAdmin) 
-    {
+function prompt { 
+    if ($isAdmin) {
         "[" + (Get-Location) + "] # " 
     }
-    else 
-    {
+    else {
         "[" + (Get-Location) + "] $ "
     }
 }
+
+### end of prompt section ###
 
 $Host.UI.RawUI.WindowTitle = "PowerShell {0}" -f $PSVersionTable.PSVersion.ToString()
 if ($isAdmin)
@@ -96,14 +115,11 @@ if ($isAdmin)
 }
 
 # Does the the rough equivalent of dir /s /b. For example, dirs *.png is dir /s /b *.png
-function dirs
-{
-    if ($args.Count -gt 0)
-    {
+function dirs {
+    if ($args.Count -gt 0) {
         Get-ChildItem -Recurse -Include "$args" | Foreach-Object FullName
     }
-    else
-    {
+    else {
         Get-ChildItem -Recurse | Foreach-Object FullName
     }
 }
@@ -111,15 +127,12 @@ function dirs
 # Simple function to start a new elevated process. If arguments are supplied then 
 # a single command is started with admin rights; if not then a new admin instance
 # of PowerShell is started.
-function admin
-{
-    if ($args.Count -gt 0)
-    {   
+function admin {
+    if ($args.Count -gt 0) {   
        $argList = "& '" + $args + "'"
        Start-Process "$psHome\powershell.exe" -Verb runAs -ArgumentList $argList
     }
-    else
-    {
+    else {
        Start-Process "$psHome\powershell.exe" -Verb runAs
     }
 }
@@ -129,16 +142,12 @@ function admin
 Set-Alias -Name su -Value admin
 Set-Alias -Name sudo -Value admin
 
-
 # Make it easy to edit this profile once it's installed
-function Edit-Profile
-{
-    if ($host.Name -match "ise")
-    {
+function Edit-Profile {
+    if ($host.Name -match "ise") {
         $psISE.CurrentPowerShellTab.Files.Add($profile.CurrentUserAllHosts)
     }
-    else
-    {
+    else {
         notepad $profile.CurrentUserAllHosts
     }
 }
@@ -147,3 +156,41 @@ function Edit-Profile
 # Delete them to prevent cluttering up the user profile. 
 Remove-Variable identity
 Remove-Variable principal
+
+
+### Transcript Section ###
+# Used to setup automated transcript start when PowerShell starts
+# Transcriptions were added in PowerShell v 5.0. They record the input and output of anything that is show in the PowerShell terminal.
+# Get-Help Start-Transcript -ShowWindow.
+
+## Transcript Section Variables ##
+# On Windows, I like to put it in the C drive directly.
+if ($IsWindows) {
+    $TranscriptDir = "C:\transcripts\"
+}
+
+# use linux or Mac path for those OSs
+#if ($IsLinux -Or $IsMac) {
+#    $TranscriptDir = "/home/test/.transcripts/"
+#}
+
+# Transcript log sets up the file's name. It will tell you:
+     # - the computer the transcript came from
+     # - the user's PowerShell session that is recordedf
+     # - the day the transcript was made
+$TranscriptLog = (hostname)+"_"+$env:USERNAME+"_"+(Get-Date -UFormat "%Y-%m-%d")
+
+# Transcript Path is the full path and file name of the transcript log.
+$TrascriptPath = $TranscriptDir + $TranscriptLog
+## end of transcript section variables ##
+
+# Test to see if the transcript directory exists. If it doesn't create it.
+if (!($TranscriptDir)) {
+    New-Item $TranscriptDir -Type Directory -Force
+}
+
+# Start the transcription based on the path we've created above
+Start-Transcript -LiteralPath $TrascriptPath -Append
+
+### end of transcript section ###
+
