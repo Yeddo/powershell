@@ -227,6 +227,93 @@ function Edit-Profile {
     }
 }
 
+# Get your current public IP
+Function Get-PubIP {
+ (Invoke-WebRequest http://ifconfig.me/ip ).Content
+}
+
+# Get the date and time in UTC
+Function Get-Zulu {
+ Get-Date -Format u
+}
+
+# Generate a pseudo random password
+Function Get-Pass {
+-join(48..57+65..90+97..122|ForEach-Object{[char]$_}|Get-Random -C 20)
+}
+
+# Display system uptime
+function uptime {
+        Get-WmiObject win32_operatingsystem | select csname, @{LABEL='LastBootUpTime';
+        EXPRESSION={$_.ConverttoDateTime($_.lastbootuptime)}}
+}
+
+# Reload profile
+function reload-profile {
+        & $profile
+}
+
+# Find a file
+function find-file($name) {
+        ls -recurse -filter "*${name}*" -ErrorAction SilentlyContinue | foreach {
+                $place_path = $_.directory
+                echo "${place_path}\${_}"
+        }
+}
+
+# Unzip a file
+function unzip ($file) {
+        $dirname = (Get-Item $file).Basename
+        echo("Extracting", $file, "to", $dirname)
+        New-Item -Force -ItemType directory -Path $dirname
+        expand-archive $file -OutputPath $dirname -ShowProgress
+}
+
+# Linux-like Scripts
+#grep
+function grep($regex, $dir) {
+        if ( $dir ) {
+                ls $dir | select-string $regex
+                return
+        }
+        $input | select-string $regex
+}
+
+# touch
+function touch($file) {
+        "" | Out-File $file -Encoding ASCII
+}
+
+# df
+function df {
+        get-volume
+}
+
+# sed
+function sed($file, $find, $replace){
+        (Get-Content $file).replace("$find", $replace) | Set-Content $file
+}
+
+# which
+function which($name) {
+        Get-Command $name | Select-Object -ExpandProperty Definition
+}
+
+# export
+function export($name, $value) {
+        set-item -force -path "env:$name" -value $value;
+}
+
+# pkill
+function pkill($name) {
+        ps $name -ErrorAction SilentlyContinue | kill
+}
+
+# pgrep
+function pgrep($name) {
+        ps $name
+}
+
 # Don't need these any more; they were just temporary variables to get to $isAdmin. 
 Remove-Variable identity
 Remove-Variable principal
