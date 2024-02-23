@@ -2,17 +2,15 @@
 ### Version 1.00 - Yeddo
 ### From https://
 ### Open PowerShell as administrator
-Create your profile by typing New-Item $profile
-You’ll get an error if the file already exists. This is expected.
-Copy the code block below into your $profile
-     Set-Location $env:TEMP
-     Import-Module PSReadLine -Verbose
-     Set-Alias ll Get-ChildItem -Option AllScope
-Type:
-     & $profile
+#Create your profile by typing New-Item $profile
+#You’ll get an error if the file already exists. This is expected.
+#Copy the code block below into your $profile
+#     Set-Location $env:TEMP
+#     Import-Module PSReadLine -Verbose
+#     Set-Alias ll Get-ChildItem -Option AllScope
+#Type:
+#     & $profile
 
-
-There you go, there’s your first PowerShell $profile.
 ### This file should be stored in $PROFILE.CurrentUserAllHosts
 ### If $PROFILE.CurrentUserAllHosts doesn't exist, you can make one with the following:
 ###    PS> New-Item $PROFILE.CurrentUserAllHosts -ItemType File -Force
